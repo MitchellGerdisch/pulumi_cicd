@@ -1,7 +1,2 @@
 config:
   aws:region: us-east-1
-  aws:skipCredentialsValidation: "true"
-  aws:skipGetEc2Platforms: "true"
-  aws:skipMetadataApiCheck: "true"
-  aws:skipRegionValidation: "true"
-  aws:skipRequestingAccountId: "true"

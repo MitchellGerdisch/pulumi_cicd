@@ -1,18 +1,11 @@
 {
-  "name": "codefresh_basic",
-  "version": "1.0.0",
-  "description": "Pulumi is an infrastructure as code (IaC) platform that can be integrated with, among other things, CI/CD pipelines. This repo provides a demo of integrating with a CI/CD tool to deploy a simple static web site in AWS S3. Of course, Pulumi can be used to stand up any sort of system from infratructure to serverless to kubernetes, etc.",
-  "main": "index.js",
-  "dependencies": {
-    "@pulumi/aws": "^3.12.1",
-    "@pulumi/pulumi": "^2.13.2"
-  },
-  "devDependencies": {
-    "@types/node": "^14.14.7"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC"
+    "name": "codefresh_basic",
+    "devDependencies": {
+        "@types/node": "^10.0.0"
+    },
+    "dependencies": {
+        "@pulumi/pulumi": "^2.0.0",
+        "@pulumi/aws": "^3.0.0",
+        "@pulumi/awsx": "^0.22.0"
+    }
 }
