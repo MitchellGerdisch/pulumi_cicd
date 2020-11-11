@@ -1,0 +1,61 @@
+# This is a variation of the main pipeline workflow that also destroys and deletes the stack before creating the new one.
+# It may be preferred if running the demo repeatedly in a row and you want to avoid having to manually run the cleanup pipeline.
+# It is able to handle situations where the stack is already destroyed or deleted.
+
+version: '1.0'
+stages:
+  - prepare
+  - build
+  - deploy
+  - STACK_NAME=codefresh
+steps:
+  main_clone:
+    title: Cloning main repository...
+    type: git-clone
+    repo: '${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}'
+    revision: '${{CF_REVISION}}'
+    stage: prepare
+    git: github
+  BuildProject:
+    title: Build project
+    stage: build
+    image: pulumi/pulumi
+    commands:
+      - yarn install
+  DestroyPulumiStack:
+    title: Destroying
+    fail_fast: false
+    stage: deploy
+    image: pulumi/pulumi
+    commands:
+      - pulumi login
+      - pulumi destroy -s ${{STACK_NAME}} -y
+  RemovePulumiStack:
+    title: Removing
+    fail_fast: false
+    when:
+      steps:
+        - name: DestroyPulumiStack
+          on:
+            - finished
+    stage: deploy
+    image: pulumi/pulumi
+    commands:
+      - pulumi login
+      - pulumi stack rm ${{STACK_NAME}} -y
+  RunPulumi:
+    title: Deploying
+    when:
+      steps:
+        - name: RemovePulumiStack
+          on:
+            - finished
+    stage: deploy
+    image: pulumi/pulumi
+    commands:
+      - pulumi login
+      - pulumi stack init ${{STACK_NAME}}
+      # (Optional) Use pulumi stack to get more information in CI/CD logs about the current stack
+      - pulumi stack
+      - pulumi config set aws:region us-east-1
+      - pulumi up --non-interactive --yes

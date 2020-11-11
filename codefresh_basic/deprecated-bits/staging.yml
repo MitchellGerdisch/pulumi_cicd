@@ -1,0 +1,117 @@
+# This is the pipeline workflow for the "staging" system.
+# It prompts the user as to whether or not to then deploy to production.
+# Both the stagin and production systems use the exact same Pulumi application code.
+
+version: '1.0'
+stages:
+  - prepare
+  - deploy
+  - promote
+  - cleanup
+steps:
+  # Get website and Pulumi application from Git
+  cloneRepo:
+    stage: prepare
+    title: Clone Repo
+    type: git-clone
+    repo: '${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}'
+    revision: '${{CF_REVISION}}'
+    git: github
+  prepareEnvironment:
+    stage: prepare
+    title: Prepare Pulumi Environment
+    fail_fast: false
+    image: pulumi/pulumi
+    working_directory: ${{CF_VOLUME_PATH}}/pulumi_env
+    commands:
+      # clean up any old stuff in the working directory - generally unnecessary
+      - rm -rf *
+
+      # create some environment variables for use in this step and subsequent steps
+      - export CF_PROJECT=`echo $CF_PIPELINE_NAME | cut -d"/" -f1`
+      - cf_export CF_PROJECT
+      - export PULUMI_PROJECT=cf-$CF_PROJECT
+      - export PULUMI_STACK=`echo $CF_PIPELINE_NAME | cut -d"/" -f2`
+      - export PULUMI_STACK_PATH=$PULUMI_ORG/$PULUMI_PROJECT/$PULUMI_STACK
+      - cf_export PULUMI_STACK_PATH
+
+      # Set up the base Pulumi environment
+      - pulumi new aws-typescript -g -f -y -n $PULUMI_PROJECT -d $PULUMI_PROJECT
+      - cp -r ../${{CF_REPO_NAME}}/* . # overwrite the files initialized by the pulumi new with the git-cloned files.
+      - npm install
+
+  # Stand up the stack for this pipeline
+  deployStack:
+    stage: deploy
+    title: Deploy Stack
+    fail_fast: false
+    image: ${{prepareEnvironment}}
+    working_directory: ${{prepareEnvironment}}
+    commands:
+      - pulumi stack select $PULUMI_STACK_PATH --create # use or create a stack
+      - pulumi config set aws:region us-east-1
+      - pulumi up --skip-preview --non-interactive --yes # --debug --logtostderr -v 9
+
+  # Request approval to launch into production.
+  askToPromote:
+    type: pending-approval
+    stage: promote
+    title: Promote to Production?
+    fail_fast: false
+    timeout: # force a clean up after "duration" hours.
+      duration: 1
+      finalState: denied
+  # Invoke the production pipeline
+  promoteToProd:
+    type: codefresh-run
+    stage: promote
+    title: Promote to Production
+    fail_fast: false
+    arguments:
+      PIPELINE_ID: ${{CF_PROJECT}}/production
+      VARIABLE:
+        - CF_REPO_OWNER=${{CF_REPO_OWNER}}
+        - CF_REPO_NAME=${{CF_REPO_NAME}}
+        - CF_REVISION=${{CF_REVISION}}
+      SKIP: # use the same codefresh yaml file for the production pipeline but skip the promote and clean up steps
+        - askToPromote
+        - promoteToProd
+        - waitToClean
+        - destroyPulumiStacks
+    when:
+      steps:
+        - name: askToPromote
+          on:
+            - approved
+
+  # Wait for a response to go and clean up the staging AND production infrastructure
+  waitToClean:
+    type: pending-approval
+    stage: cleanup
+    title: Waiting to clean up the staging and production environments
+    fail_fast: false
+    timeout: # force a clean up after "duration" hours.
+      duration: 1
+      finalState: approved
+  # Always destroy the staging and production stacks once the clean up question is answered.
+  destroyPulumiStacks:
+    stage: cleanup
+    title: Destroy Staging and Production Demo Stacks
+    fail_fast: false
+    image: pulumi/pulumi
+    working_directory: ${{deployStack}}
+    commands:
+      # Recreate the base Pulumi environment to do the destroys.
+      # Codefresh supports configuring things so the environment from the deploy stack is available to this step, but it's not being used.
+      - export PULUMI_PROJECT=cf-`echo $CF_PIPELINE_NAME | cut -d"/" -f1`
+      - export PULUMI_STAGING=$PULUMI_ORG/$PULUMI_PROJECT/staging
+      - export PULUMI_PRODUCTION=$PULUMI_ORG/$PULUMI_PROJECT/production
+      - pulumi new aws-typescript -g -f -y -n $PULUMI_PROJECT -d $PULUMI_PROJECT
+      # Destroy staging
+      - pulumi stack select $PULUMI_STAGING --create
+      - pulumi destroy -s $PULUMI_STAGING -y --skip-preview
+      - pulumi stack rm $PULUMI_STAGING -y
+      # Destroy production
+      - pulumi stack select $PULUMI_PRODUCTION --create
+      - pulumi destroy -s $PULUMI_PRODUCTION -y --skip-preview
+      - pulumi stack rm $PULUMI_PRODUCTION -y

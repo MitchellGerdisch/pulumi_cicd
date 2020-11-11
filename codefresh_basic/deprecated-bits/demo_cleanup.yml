@@ -1,0 +1,31 @@
+# This pipeline workflow is used to clean up the resources launched by the main pipeline workflow.
+# It is meant to be run manually and should NOT be triggered by git actions like the main pipeline is.
+
+version: '1.0'
+stages:
+  - prepare
+  - build
+  - cleanup
+steps:
+  main_clone:
+    title: Cloning main repository...
+    type: git-clone
+    repo: '${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}'
+    revision: '${{CF_REVISION}}'
+    stage: prepare
+    git: github
+  BuildProject:
+    title: Build project
+    stage: build
+    image: pulumi/pulumi
+    commands:
+      - yarn install
+  DestroyPulumiStack:
+    title: Cleaning up old stack if there is one.
+    fail_fast: false
+    stage: cleanup
+    image: pulumi/pulumi
+    commands:
+      - pulumi login
+      - pulumi destroy -s ${{CF_PIPELINE_NAME}} -y
+      - pulumi stack rm ${{CF_PIPELINE_NAME}}	-y
