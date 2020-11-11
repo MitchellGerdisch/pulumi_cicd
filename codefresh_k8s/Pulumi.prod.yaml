@@ -1,2 +1,5 @@
 config:
-  gcp:project: pulumi-ce-team
+  gcp:project:
+    secure: AAABAKlz8xOMv/DIdpmopQTcKMl+Gt3I17YBBFGzSqIx+r4xIft3rWrmTaSHjw==
+  gcp:region: us-central1
+  gcp:zone: us-central1-a
