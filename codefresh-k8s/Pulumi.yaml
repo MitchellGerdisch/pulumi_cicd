@@ -1,3 +1,3 @@
-name: codefresh_k8s
+name: codefresh-k8s
 runtime: nodejs
 description: A minimal Google Cloud TypeScript Pulumi program

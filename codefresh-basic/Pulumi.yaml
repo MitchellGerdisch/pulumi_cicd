@@ -1,3 +1,3 @@
-name: codefresh_basic
+name: codefresh-basic
 runtime: nodejs
 description: A minimal AWS TypeScript Pulumi program
