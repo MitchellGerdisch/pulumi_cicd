@@ -1,5 +1,5 @@
 config:
   gcp:project:
-    secure: AAABAJrYaHc6RcWsYVYMVKmgg0MLiE4SlPHWmrKj/jo96DmQa4znqi9GCOoEgg==
+    secure: AAABALhKWzpOVjN2EBUSjynNVuAbPz2CR0UK72hwPXaJqrF1izwfZja5X61tIg==
   gcp:region: us-central1
   gcp:zone: us-central1-a
