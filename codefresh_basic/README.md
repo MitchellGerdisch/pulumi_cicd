@@ -4,6 +4,8 @@ Pulumi is an infrastructure as code (IaC) platform that can be integrated with, 
 This repo provides a demo of integrating with a CI/CD tool to deploy a simple static web site in AWS S3.
 Of course, Pulumi can be used to stand up any sort of system from infratructure to serverless to kubernetes, etc.
 
+This is a "basic" use-case that is showing the fundamentals of both Pulumi and Codefresh.
+
 # Codefresh CI/CD Platform
 
 This demo uses codefresh.io as the CI/CD platform.
