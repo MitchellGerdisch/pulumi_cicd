@@ -9,8 +9,10 @@ const siteDir = 'www'; // directory for content files
 // Get an environment configuration setting if it exists
 // use this to modify the index.html for some unique text.
 const stack = pulumi.getStack()
+console.log("stack", stack)
 const currentTime = new Date().toLocaleTimeString('en-US',{timeZone: 'America/Chicago'})
 const webText = `STACK: ${stack}-${currentTime}`
+console.log("webtext",webText)
 
 // contentBucket is the S3 bucket that the website's contents will be stored in.
 const siteBucket = new aws.s3.Bucket('codefresh-demo-bucket', {
